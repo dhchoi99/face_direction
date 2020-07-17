@@ -10,6 +10,8 @@ from PIL import Image
 import face_alignment
 import open3d as o3d
 
+from utils import *
+
 
 def rule_3d_x(landmarks):
     eps = 1e-10
@@ -84,62 +86,6 @@ def benchmark_3d():
     print('max', max)
 
 
-def pcl_landmarks(landmarks):
-    pcl_lands = o3d.geometry.PointCloud()
-    pcl_lands.points = o3d.utility.Vector3dVector(landmarks)
-    return pcl_lands
-
-def pcl_axes(axes, center, align_image=False):
-    if align_image:
-        center = center.copy()
-        center[2] = 0
-    x, y, z = axes
-    vec = o3d.geometry.PointCloud()
-    mult = (np.arange(-100, 100) / 3.).reshape(-1, 1)
-    pointsx = center + mult * x
-    pointsy = center + mult * y
-    pointsz = center + mult * z
-    points = np.concatenate((pointsx, pointsy, pointsz), axis=0)
-    vec.points = o3d.utility.Vector3dVector(points)
-    return vec
-
-def pcl_img(img, landmarks=None, project_landmarks=False):
-    assert isinstance(img, np.ndarray)
-    colors = img.copy()
-    xy = np.indices(colors.shape[:2])
-    z = np.zeros((1, xy.shape[1], xy.shape[2]))
-    points = np.concatenate((xy, z), axis=0)
-    points = points.transpose((2, 1, 0)).reshape(-1, 3)
-
-    if project_landmarks and landmarks is not None:
-        proj = landmarks.copy()
-        proj[:, 2] = 0
-        for i in range(len(proj)):
-            point = proj[i]
-            x, y = int(point[0]), int(point[1])
-            H, W = colors.shape[0], colors.shape[1]
-            r = 1
-            colors[(y - r) % H:(y + r) % H, (x - r) % W:(x + r) % H, :] = np.array([0, 255, 0])
-
-    colors = colors.reshape(-1, 3)
-    pcl_img = o3d.geometry.PointCloud()
-    pcl_img.points = o3d.utility.Vector3dVector(points)
-    pcl_img.paint_uniform_color((0.9, 0.9, 0.9))
-    pcl_img.colors = o3d.utility.Vector3dVector(colors / 255.)
-
-    return pcl_img
-
-
-def show_3d(axes, img, landmarks):
-    assert landmarks.shape[1] == 3
-    p_lands = pcl_landmarks(landmarks)
-
-    center = landmarks[33]
-    p_axes = pcl_axes(axes, center)
-
-    p_img = pcl_img(img, landmarks, True)
-    o3d.visualization.draw_geometries([p_lands, p_axes, p_img])
-
 
 def direction_3d(path, path_img):
     path = 'data/voxceleb/annos/0000098.pkl'
@@ -150,21 +96,30 @@ def direction_3d(path, path_img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = np.asarray(img)
 
-    x = rule_3d_x(landmarks)
-    y = rule_3d_y(landmarks)
+    axes = axes_3d(landmarks)
+    x, y, z = axes
+
+    # x = rule_3d_x(landmarks)
+    # y = rule_3d_y(landmarks)
+    # z = np.cross(x, y)
+    # axes = (x, y, z)
     print('xy dot', np.dot(x, y))
     print('xy dot as angle', np.arccos(np.dot(x, y)) / np.pi * 180. )
-    z = np.cross(x, y)
 
-    axes = (x, y, z)
+    p_lands = pcl_landmarks(landmarks)
+    p_img = pcl_img(img)
+    p_axes = pcl_axes(axes, center=landmarks[33])
+    o3d.visualization.draw_geometries([p_lands, p_axes, p_img])
 
-    show_3d(axes, img, landmarks)
+
+
+    #show_3d(axes, img, landmarks)
 
 
 def main():
     start_time = time.time()
-    #direction_3d(None, None)
-    benchmark_3d()
+    direction_3d(None, None)
+    #benchmark_3d()
     print('time', time.time()-start_time)
 
 
