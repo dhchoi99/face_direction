@@ -13,7 +13,7 @@ import open3d as o3d
 from utils import *
 
 
-def rule_3d_x(landmarks):
+def axes_3d_x(landmarks):
     eps = 1e-10
     if not isinstance(landmarks, np.ndarray):
         landmarks = np.asarray(landmarks, dtype=float)
@@ -36,22 +36,22 @@ def rule_3d_x(landmarks):
     x = np.asarray(x).reshape(-1)
     return x
 
-def rule_3d_y(landmarks):
+def axes_3d_y(landmarks):
     eps = 1e-10
     if not isinstance(landmarks, np.ndarray):
         landmarks = np.asarray(landmarks, dtype=float)
     assert (68, 3) == landmarks.shape
 
     y = []
-    y.append(landmarks[27] - landmarks[57])
+    y.append(landmarks[27] - landmarks[33])
 
     y /= (np.linalg.norm(y) + eps)
     y = np.asarray(y).reshape(-1)
     return y
 
 def axes_3d(landmarks):
-    x = rule_3d_x(landmarks)
-    y = rule_3d_y(landmarks)
+    x = axes_3d_x(landmarks)
+    y = axes_3d_y(landmarks)
     z = np.cross(x, y)
     axes = x, y, z
     return axes
@@ -110,10 +110,6 @@ def direction_3d(path, path_img):
     p_img = pcl_img(img)
     p_axes = pcl_axes(axes, center=landmarks[33])
     o3d.visualization.draw_geometries([p_lands, p_axes, p_img])
-
-
-
-    #show_3d(axes, img, landmarks)
 
 
 def main():
